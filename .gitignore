@@ -16,11 +16,12 @@ dist/
 out/
 target/
 captures/
+artifacts/
+tools/ffmpeg/
 
 # Android / Gradle
 .gradle/
 local.properties
-captures/
 
 # Server runtime
 *.db

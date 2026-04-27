@@ -10,6 +10,7 @@ param(
     [int] $OffsetX = 0,
     [int] $OffsetY = 0,
     [int] $VideoBitrateKbps = 12000,
+    [int] $DurationSeconds = 0,
     [ValidateSet("auto", "h264_nvenc", "libx264")]
     [string] $Encoder = "auto",
     [string] $FfmpegPath,
@@ -103,7 +104,13 @@ function Test-Encoder {
         return $true
     }
 
-    $encoders = & $ResolvedFfmpeg -hide_banner -encoders 2>&1
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $encoders = & $ResolvedFfmpeg -hide_banner -encoders 2>&1
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
     return (($encoders -join "`n") -match [regex]::Escape($EncoderName))
 }
 
@@ -129,6 +136,24 @@ function Resolve-Encoder {
     }
 
     throw "No supported H.264 encoder found. Expected h264_nvenc or libx264."
+}
+
+function Assert-CaptureParameters {
+    if ($Fps -lt 1 -or $Fps -gt 240) {
+        throw "Invalid fps: $Fps. Expected 1..240."
+    }
+    if ($Width -lt 320 -or $Width -gt 7680) {
+        throw "Invalid width: $Width. Expected 320..7680."
+    }
+    if ($Height -lt 240 -or $Height -gt 4320) {
+        throw "Invalid height: $Height. Expected 240..4320."
+    }
+    if ($VideoBitrateKbps -lt 500 -or $VideoBitrateKbps -gt 200000) {
+        throw "Invalid video bitrate: $VideoBitrateKbps. Expected 500..200000 Kbps."
+    }
+    if ($DurationSeconds -lt 0) {
+        throw "Invalid duration: $DurationSeconds. Expected 0 for unlimited or a positive second count."
+    }
 }
 
 function New-FfmpegArgs {
@@ -178,6 +203,12 @@ function New-FfmpegArgs {
         )
     }
 
+    if ($DurationSeconds -gt 0) {
+        $args += @(
+            "-t", "$DurationSeconds"
+        )
+    }
+
     if ($Mode -eq "file") {
         $outputDir = Split-Path -Parent $Output
         if ($outputDir -and -not (Test-Path -LiteralPath $outputDir) -and -not $DryRun) {
@@ -216,6 +247,7 @@ if ($Config) {
     Set-FromConfig -ConfigObject $configObject -PropertyName "offsetX" -VariableName "OffsetX"
     Set-FromConfig -ConfigObject $configObject -PropertyName "offsetY" -VariableName "OffsetY"
     Set-FromConfig -ConfigObject $configObject -PropertyName "videoBitrateKbps" -VariableName "VideoBitrateKbps"
+    Set-FromConfig -ConfigObject $configObject -PropertyName "durationSeconds" -VariableName "DurationSeconds"
     Set-FromConfig -ConfigObject $configObject -PropertyName "encoder" -VariableName "Encoder"
     if (($configObject.PSObject.Properties.Name -contains "drawMouse") -and -not $script:InitialBoundParameters.ContainsKey("NoDrawMouse")) {
         $NoDrawMouse = -not [bool] $configObject.drawMouse
@@ -228,6 +260,7 @@ if (@("file", "udp") -notcontains $Mode) {
 if (@("auto", "h264_nvenc", "libx264") -notcontains $Encoder) {
     throw "Invalid encoder: $Encoder. Expected auto, h264_nvenc, or libx264."
 }
+Assert-CaptureParameters
 
 $ffmpeg = Resolve-FfmpegPath -ExplicitPath $FfmpegPath
 
@@ -255,6 +288,11 @@ Write-Host "  FFmpeg : $ffmpeg"
 Write-Host "  Mode   : $Mode"
 Write-Host "  Encoder: $resolvedEncoder"
 Write-Host "  Size   : ${Width}x${Height} @ ${Fps}fps"
+if ($DurationSeconds -gt 0) {
+    Write-Host "  Duration: ${DurationSeconds}s"
+} else {
+    Write-Host "  Duration: unlimited"
+}
 
 if ($Mode -eq "file") {
     Write-Host "  Output : $Output"
@@ -270,5 +308,13 @@ if ($DryRun) {
     exit 0
 }
 
-& $ffmpeg @ffmpegArgs
-exit $LASTEXITCODE
+$previousErrorActionPreference = $ErrorActionPreference
+$ErrorActionPreference = "Continue"
+try {
+    & $ffmpeg @ffmpegArgs
+    $ffmpegExitCode = $LASTEXITCODE
+} finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+}
+
+exit $ffmpegExitCode

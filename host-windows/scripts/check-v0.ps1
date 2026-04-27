@@ -48,6 +48,22 @@ function Test-TextContains {
     return (($Lines -join "`n") -match [regex]::Escape($Pattern))
 }
 
+function Invoke-NativeCommand {
+    param(
+        [string] $FilePath,
+        [string[]] $Arguments
+    )
+
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        & $FilePath @Arguments 2>&1 | ForEach-Object { Write-Host $_ }
+        return $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+}
+
 Write-Host "OpenComputer Host V0 preflight"
 Write-Host ""
 
@@ -87,9 +103,18 @@ if (-not $hasNvenc -and -not $hasX264) {
 if ($TestCapture) {
     Write-Host ""
     Write-Host "Testing one-frame gdigrab capture..."
-    & $ffmpeg -hide_banner -f gdigrab -framerate 1 -video_size 640x360 -i desktop -frames:v 1 -f null - 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
+    $testExitCode = Invoke-NativeCommand -FilePath $ffmpeg -Arguments @(
+        "-hide_banner",
+        "-f", "gdigrab",
+        "-framerate", "1",
+        "-video_size", "640x360",
+        "-i", "desktop",
+        "-frames:v", "1",
+        "-f", "null",
+        "-"
+    )
+    if ($testExitCode -ne 0) {
+        exit $testExitCode
     }
 }
 

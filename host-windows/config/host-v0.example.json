@@ -8,6 +8,7 @@
   "offsetX": 0,
   "offsetY": 0,
   "videoBitrateKbps": 12000,
+  "durationSeconds": 10,
   "encoder": "auto",
   "drawMouse": true
 }

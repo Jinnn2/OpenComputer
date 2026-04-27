@@ -28,6 +28,7 @@ gdigrab desktop capture -> H.264 encode -> MP4 file or UDP MPEG-TS
 ```text
 host-windows/scripts/capture-v0.ps1
 host-windows/scripts/check-v0.ps1
+host-windows/scripts/accept-v0.ps1
 ```
 
 配置示例：
@@ -50,6 +51,45 @@ host-windows/config/host-v0.example.json
 ```
 
 当前 Codex 环境没有安装 FFmpeg；在你的本机安装后即可直接运行脚本。
+
+## 安装项目内 FFmpeg
+
+如果系统 PATH 没有 FFmpeg，可以下载 portable FFmpeg 到项目内：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File host-windows\scripts\install-ffmpeg.ps1
+```
+
+脚本会下载 gyan.dev 的 `ffmpeg-release-essentials.zip`，校验 SHA256，然后把可执行文件放到：
+
+```text
+tools/ffmpeg/bin/ffmpeg.exe
+```
+
+## V0 验收脚本
+
+执行 Host V0 的批量验收：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File host-windows\scripts\accept-v0.ps1
+```
+
+验收脚本会依次执行：
+
+```text
+1. FFmpeg / H.264 encoder preflight
+2. 配置文件 dry-run
+3. CPU 编码 dry-run
+4. UDP MPEG-TS dry-run
+5. 若 preflight 通过，则录制一个短 MP4 样片
+6. 使用 ffprobe 检查样片元数据
+```
+
+报告输出到：
+
+```text
+artifacts/host-v0/acceptance-*.md
+```
 
 ## V0 预检
 
@@ -84,6 +124,16 @@ powershell -ExecutionPolicy Bypass -File host-windows\scripts\capture-v0.ps1 `
   -Height 1080 `
   -Fps 30 `
   -VideoBitrateKbps 12000
+```
+
+录制 10 秒后自动退出：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File host-windows\scripts\capture-v0.ps1 `
+  -Mode file `
+  -Encoder libx264 `
+  -DurationSeconds 10 `
+  -Output captures\host-v0-10s.mp4
 ```
 
 使用 CPU 编码兜底：
