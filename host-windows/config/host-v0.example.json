@@ -1,0 +1,13 @@
+{
+  "mode": "file",
+  "output": "captures/host-v0.mp4",
+  "udpUrl": "udp://127.0.0.1:5000?pkt_size=1316",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "offsetX": 0,
+  "offsetY": 0,
+  "videoBitrateKbps": 12000,
+  "encoder": "auto",
+  "drawMouse": true
+}

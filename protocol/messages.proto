@@ -1,0 +1,169 @@
+syntax = "proto3";
+
+package opencomputer.protocol;
+
+option java_package = "com.opencomputer.protocol";
+option java_multiple_files = true;
+
+message Envelope {
+  string type = 1;
+  string request_id = 2;
+  int64 timestamp_ms = 3;
+  oneof body {
+    DeviceRegister device_register = 10;
+    DeviceRegisterAck device_register_ack = 11;
+    ConnectRequest connect_request = 12;
+    ConnectResponse connect_response = 13;
+    WebRtcOffer webrtc_offer = 14;
+    WebRtcAnswer webrtc_answer = 15;
+    IceCandidate ice_candidate = 16;
+    SessionState session_state = 17;
+    InputEvent input_event = 18;
+    PrivilegedAction privileged_action = 19;
+    PrivilegedActionResult privileged_action_result = 20;
+  }
+}
+
+enum DeviceType {
+  DEVICE_TYPE_UNSPECIFIED = 0;
+  DEVICE_TYPE_HOST = 1;
+  DEVICE_TYPE_CLIENT = 2;
+}
+
+enum SessionMode {
+  SESSION_MODE_UNSPECIFIED = 0;
+  SESSION_MODE_VIEW_ONLY = 1;
+  SESSION_MODE_FULL_CONTROL = 2;
+}
+
+enum SessionStateValue {
+  SESSION_STATE_UNSPECIFIED = 0;
+  SESSION_STATE_OFFLINE = 1;
+  SESSION_STATE_ONLINE = 2;
+  SESSION_STATE_CONNECTING = 3;
+  SESSION_STATE_CONNECTED = 4;
+  SESSION_STATE_RELAY = 5;
+  SESSION_STATE_ERROR = 6;
+}
+
+message DeviceRegister {
+  string device_id = 1;
+  DeviceType device_type = 2;
+  string name = 3;
+  string public_key = 4;
+  repeated string capabilities = 5;
+}
+
+message DeviceRegisterAck {
+  bool accepted = 1;
+  int64 server_time_ms = 2;
+  string error = 3;
+}
+
+message ConnectRequest {
+  string host_id = 1;
+  string client_id = 2;
+  SessionMode mode = 3;
+  bool quick_connect = 4;
+}
+
+message ConnectResponse {
+  bool accepted = 1;
+  string reason = 2;
+  bool require_local_confirm = 3;
+}
+
+message WebRtcOffer {
+  string from = 1;
+  string to = 2;
+  string sdp = 3;
+}
+
+message WebRtcAnswer {
+  string from = 1;
+  string to = 2;
+  string sdp = 3;
+}
+
+message IceCandidate {
+  string from = 1;
+  string to = 2;
+  string candidate = 3;
+  string sdp_mid = 4;
+  int32 sdp_mline_index = 5;
+}
+
+message SessionState {
+  string session_id = 1;
+  SessionStateValue state = 2;
+  bool relay_used = 3;
+  string video_codec = 4;
+  string resolution = 5;
+  int32 fps = 6;
+  string error = 7;
+}
+
+message InputEvent {
+  string type = 1;
+  uint64 seq = 2;
+  int64 timestamp_ms = 3;
+  oneof payload {
+    MouseMove mouse_move = 10;
+    MouseButton mouse_button = 11;
+    MouseWheel mouse_wheel = 12;
+    KeyEvent key = 13;
+    Shortcut shortcut = 14;
+    PasteText paste_text = 15;
+    Gesture gesture = 16;
+  }
+}
+
+message MouseMove {
+  double x = 1;
+  double y = 2;
+  int32 screen = 3;
+  string mode = 4;
+}
+
+message MouseButton {
+  string button = 1;
+  string action = 2;
+}
+
+message MouseWheel {
+  int32 delta_x = 1;
+  int32 delta_y = 2;
+}
+
+message KeyEvent {
+  string code = 1;
+  string action = 2;
+  repeated string modifiers = 3;
+}
+
+message Shortcut {
+  string name = 1;
+}
+
+message PasteText {
+  string text = 1;
+  string method = 2;
+}
+
+message Gesture {
+  string name = 1;
+  double scale = 2;
+  double center_x = 3;
+  double center_y = 4;
+}
+
+message PrivilegedAction {
+  string action = 1;
+  map<string, string> args = 2;
+}
+
+message PrivilegedActionResult {
+  bool ok = 1;
+  string error = 2;
+  map<string, string> data = 3;
+}
