@@ -18,6 +18,11 @@ target/
 captures/
 artifacts/
 tools/ffmpeg/
+tools/gradle/
+tools/android-downloads/
+tools/android-studio-downloads/
+tools/android-sdk/
+tools/jdk/
 
 # Android / Gradle
 .gradle/
